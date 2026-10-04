@@ -1,0 +1,59 @@
+spring:
+  application:
+    name: javaaiagent
+  jackson:
+    default-property-inclusion: non_null
+
+server:
+  address: ${SERVER_ADDRESS:127.0.0.1}
+  port: ${SERVER_PORT:8080}
+  tomcat:
+    connection-timeout: ${SERVER_CONNECTION_TIMEOUT:60s}
+    keep-alive-timeout: ${SERVER_KEEP_ALIVE_TIMEOUT:60s}
+    max-http-form-post-size: 16KB
+  error:
+    include-message: never
+    include-stacktrace: never
+
+agent:
+  environment: ${ENVIRONMENT:local}
+  model-mode: ${MODEL_MODE:openai}
+  # Local development uses the alias advertised by llama-server /v1/models.
+  llm-model: ${LLM_MODEL:qwen3.5-9b}
+  openai:
+    base-url: ${OPENAI_BASE_URL:http://localhost:6666}
+    completions-path: ${OPENAI_COMPLETIONS_PATH:/v1/chat/completions}
+  # Local-development credential only; override for any other provider.
+  openai-api-key: ${OPENAI_API_KEY:wibblywobblywonder}
+  url: ${AGENT_URL:http://127.0.0.1:8080/}
+  auth-mode: ${AUTH_MODE:demo}
+  demo-token: ${DEMO_TOKEN:local-demo-client-token}
+  jwt-public-key-file: ${JWT_PUBLIC_KEY_FILE:}
+  jwt-issuer: ${JWT_ISSUER:https://identity.example.com/}
+  jwt-audience: ${JWT_AUDIENCE:jagent}
+  status-url: ${STATUS_URL:http://127.0.0.1:8081}
+  runbook-url: ${RUNBOOK_URL:http://127.0.0.1:8082}
+  status-token: ${STATUS_TOKEN:local-demo-status-token}
+  runbook-token: ${RUNBOOK_TOKEN:local-demo-runbook-token}
+  templates:
+    location: ${MESSAGE_TEMPLATES_LOCATION:classpath:templates/messages.json}
+  runtime:
+    max-model-rounds: ${AGENT_MAX_MODEL_ROUNDS:4}
+    max-tool-calls-per-round: ${AGENT_MAX_TOOL_CALLS_PER_ROUND:2}
+    max-output-tokens: ${LLM_MAX_OUTPUT_TOKENS:1000}
+    workers: ${AGENT_WORKERS:8}
+  # Durations accept ms, s, m or ISO-8601; validated range: 1ms through 1h.
+  timeouts:
+    connect: ${HTTP_CONNECT_TIMEOUT:5s}
+    tool-call: ${TOOL_CALL_TIMEOUT:5s}
+    llm-call: ${LLM_CALL_TIMEOUT:60s}
+    execution: ${AGENT_EXECUTION_TIMEOUT:45s}
+    client-discovery: ${CLIENT_DISCOVERY_TIMEOUT:10s}
+    client-request: ${CLIENT_REQUEST_TIMEOUT:60s}
+
+logging:
+  level:
+    agent.diagnostics: ${AGENT_DIAGNOSTICS_LOG_LEVEL:INFO}
+    com.example.javaaiagent: ${AGENT_LOG_LEVEL:INFO}
+    org.springframework.ai: ${AI_LOG_LEVEL:INFO}
+    org.bsc.langgraph4j: ${GRAPH_LOG_LEVEL:INFO}

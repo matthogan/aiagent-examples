@@ -31,3 +31,19 @@ jobs:
           java-version: '21'
           cache: maven
       - run: mvn --batch-mode verify
+  go:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: goaiagent
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: goaiagent/go.mod
+          cache-dependency-path: goaiagent/go.sum
+      - run: go mod verify
+      - run: test -z "$(gofmt -l cmd internal)"
+      - run: go vet ./...
+      - run: go test -race ./...
+      - run: go build -o bin/ ./cmd/goaiagent

@@ -1,5 +1,6 @@
-"""Run after building Java: uv run --project pyaiagent python scripts/verify_interop.py."""
+"""Check client/server interoperability; add --with-go after building the Go binary."""
 
+import argparse
 import os
 import shutil
 import socket
@@ -15,6 +16,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--with-go", action="store_true", help="Include Go and use its mock APIs")
+    args = parser.parse_args()
+    go_binary = ROOT / "goaiagent/bin" / ("goaiagent.exe" if os.name == "nt" else "goaiagent")
+    if args.with_go and not go_binary.is_file():
+        raise SystemExit("Build Go first: cd goaiagent; go build -o bin/ ./cmd/goaiagent")
     jar = ROOT / "javaaiagent/target/javaaiagent-0.1.0.jar"
     if not jar.is_file():
         raise SystemExit("Build Java first: mvn -f javaaiagent/pom.xml package")
@@ -27,11 +34,11 @@ def main():
     if not java:
         raise SystemExit("Java 21+ is required")
     ports = []
-    for _ in range(4):
+    for _ in range(5 if args.with_go else 4):
         with socket.socket() as listener:
             listener.bind(("127.0.0.1", 0))
             ports.append(listener.getsockname()[1])
-    java_port, python_port, status_port, runbook_port = ports
+    java_port, python_port, status_port, runbook_port = ports[:4]
     env = dict(
         os.environ,
         ENVIRONMENT="local",
@@ -49,9 +56,10 @@ def main():
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     with tempfile.TemporaryFile() as logs:
         try:
+            mock_command = [str(go_binary)] if args.with_go else [java, "-jar", str(jar)]
             commands = [
-                ([java, "-jar", str(jar), "mock", "status", str(status_port)], env, ROOT),
-                ([java, "-jar", str(jar), "mock", "runbook", str(runbook_port)], env, ROOT),
+                ([*mock_command, "mock", "status", str(status_port)], env, ROOT),
+                ([*mock_command, "mock", "runbook", str(runbook_port)], env, ROOT),
                 (
                     [java, "-jar", str(jar)],
                     dict(
@@ -75,6 +83,17 @@ def main():
                     ROOT / "pyaiagent",
                 ),
             ]
+            if args.with_go:
+                go_port = ports[4]
+                commands.append(
+                    (
+                        [str(go_binary)],
+                        dict(
+                            env, SERVER_PORT=str(go_port), AGENT_URL=f"http://127.0.0.1:{go_port}/"
+                        ),
+                        ROOT,
+                    )
+                )
             for command, process_env, cwd in commands:
                 processes.append(
                     subprocess.Popen(command, env=process_env, cwd=cwd, stdout=logs, stderr=logs)
@@ -97,6 +116,19 @@ def main():
                 ("Python client -> Java agent", [sys.executable, "-m", "jagent.client"], java_port),
                 ("Java client -> Python agent", [java, "-jar", str(jar), "client"], python_port),
             ]
+            if args.with_go:
+                checks.extend(
+                    [
+                        (
+                            "Python client -> Go agent",
+                            [sys.executable, "-m", "jagent.client"],
+                            go_port,
+                        ),
+                        ("Java client -> Go agent", [java, "-jar", str(jar), "client"], go_port),
+                        ("Go client -> Python agent", [str(go_binary), "client"], python_port),
+                        ("Go client -> Java agent", [str(go_binary), "client"], java_port),
+                    ]
+                )
             for label, command, port in checks:
                 result = subprocess.run(
                     command,

@@ -1,0 +1,29 @@
+# Replace URLs and mount the trusted key; provide secrets via environment.
+# Copy to production.yaml and load with:
+# --spring.config.additional-location=file:config/production.yaml
+agent:
+  environment: production
+  model-mode: openai
+  llm-model: ${LLM_MODEL}
+  auth-mode: jwt
+  url: https://agent.example.com/
+  status-url: https://status.internal.example.com
+  runbook-url: https://runbooks.internal.example.com
+  jwt-public-key-file: /run/secrets/issuer-public.pem
+  jwt-issuer: https://identity.example.com/
+  jwt-audience: jagent
+  openai:
+    base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+    completions-path: ${OPENAI_COMPLETIONS_PATH:/v1/chat/completions}
+  openai-api-key: ${OPENAI_API_KEY}
+  status-token: ${STATUS_TOKEN}
+  runbook-token: ${RUNBOOK_TOKEN}
+  templates:
+    location: ${MESSAGE_TEMPLATES_LOCATION:classpath:templates/messages.json}
+  timeouts:
+    connect: ${HTTP_CONNECT_TIMEOUT:5s}
+    tool-call: ${TOOL_CALL_TIMEOUT:5s}
+    llm-call: ${LLM_CALL_TIMEOUT:20s}
+    execution: ${AGENT_EXECUTION_TIMEOUT:45s}
+    client-discovery: ${CLIENT_DISCOVERY_TIMEOUT:10s}
+    client-request: ${CLIENT_REQUEST_TIMEOUT:60s}

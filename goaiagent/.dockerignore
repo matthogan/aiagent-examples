@@ -1,0 +1,6 @@
+bin
+.env
+*.pem
+*.key
+.git
+coverage.out
