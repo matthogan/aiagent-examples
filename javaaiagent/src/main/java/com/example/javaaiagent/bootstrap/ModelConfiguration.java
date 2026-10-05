@@ -2,6 +2,7 @@ package com.example.javaaiagent.bootstrap;
 
 import com.example.javaaiagent.application.AgentModel;
 import com.example.javaaiagent.config.AgentSettings;
+import com.example.javaaiagent.config.JsonSchemaSettings;
 import com.example.javaaiagent.config.OpenAiSettings;
 import com.example.javaaiagent.config.RuntimeSettings;
 import com.example.javaaiagent.config.TimeoutSettings;
@@ -32,7 +33,8 @@ public class ModelConfiguration {
 
     @Bean
     AgentModel agentModel(AgentSettings settings, TimeoutSettings timeouts, OpenAiSettings endpoint,
-                          MessageTemplates templates, RuntimeSettings runtime, @Qualifier("modelHttpClient") HttpClient http) {
+                          MessageTemplates templates, RuntimeSettings runtime, JsonSchemaSettings jsonSchemaSettings,
+                          @Qualifier("modelHttpClient") HttpClient http) {
 
         if (settings.environment().equals("production") && !endpoint.baseUrl().getScheme().equals("https")) {
             throw new IllegalArgumentException("Production OPENAI_BASE_URL requires HTTPS");
@@ -59,6 +61,6 @@ public class ModelConfiguration {
                 .retryTemplate(RetryTemplate.builder().maxAttempts(1).build())
                 .build();
         // Spring closes this AutoCloseable bean on shutdown, releasing its bounded worker pool.
-        return new TimedAgentModel(SpringAiAgentModel.create(model, templates), timeouts.llmCall(), runtime.workers());
+        return new TimedAgentModel(SpringAiAgentModel.create(model, templates, jsonSchemaSettings), timeouts.llmCall(), runtime.workers());
     }
 }

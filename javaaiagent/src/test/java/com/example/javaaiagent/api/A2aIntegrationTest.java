@@ -8,6 +8,7 @@ import com.example.javaaiagent.AgentApplication;
 import com.example.javaaiagent.application.OperationsGraph;
 import com.example.javaaiagent.application.Turn;
 import com.example.javaaiagent.config.AgentSettings;
+import com.example.javaaiagent.config.JsonSchemaSettings;
 import com.example.javaaiagent.demo.MockServices;
 import com.example.javaaiagent.http.BoundedHttp;
 import com.example.javaaiagent.model.SpringAiAgentModel;
@@ -33,6 +34,7 @@ import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.retry.support.RetryTemplate;
 
 class A2aIntegrationTest {
@@ -382,11 +384,15 @@ class A2aIntegrationTest {
                             null,
                             new com.example.javaaiagent.config.DiagnosticsSettings(null, null),
                             diagnosticEvents::add);
+            var jsonSchemaSettings =
+                    new JsonSchemaSettings(
+                            new ClassPathResource("schemas/observation-response.json"));
             var result =
                     new OperationsGraph(
                                     SpringAiAgentModel.create(
                                             model,
                                             configuredTemplates,
+                                            jsonSchemaSettings,
                                             response ->
                                                     observedUsage.add(
                                                             response.getMetadata().getUsage())),

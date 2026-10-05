@@ -2,6 +2,7 @@ package com.example.javaaiagent.eval;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.example.javaaiagent.config.JsonSchemaSettings;
 import com.example.javaaiagent.config.TemplateSettings;
 import com.example.javaaiagent.http.BoundedHttp;
 import com.example.javaaiagent.model.SpringAiAgentModel;
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.retry.support.RetryTemplate;
@@ -46,8 +48,11 @@ class LiveModelEvaluationTest {
                     .defaultOptions(OpenAiChatOptions.builder().model(config.model()).maxTokens(1000)
                             .internalToolExecutionEnabled(false).build())
                     .retryTemplate(RetryTemplate.builder().maxAttempts(1).build()).build();
+            var jsonSchemaSettings =
+                    new JsonSchemaSettings(
+                            new ClassPathResource("schemas/observation-response.json"));
             var runner = new EvalRunner(dataset, templates,
-                    observer -> SpringAiAgentModel.create(provider, templates, observer), config);
+                    observer -> SpringAiAgentModel.create(provider, templates, jsonSchemaSettings, observer), config);
             for (int repetition = 1; repetition <= config.repetitions(); repetition++) {
                 for (var scenario : dataset.cases()) {
                     results.add(runner.run(scenario, repetition));

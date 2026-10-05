@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:javaaiagent:schemas:observation-response:v1",
+  "title": "ObservationResponse",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "observations",
+    "runbooks"
+  ],
+  "properties": {
+    "observations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/observation"
+      }
+    },
+    "runbooks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/runbook"
+      }
+    }
+  },
+  "$defs": {
+    "service": {
+      "type": "string",
+      "enum": [
+        "payments",
+        "orders"
+      ]
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service",
+        "source",
+        "status"
+      ],
+      "properties": {
+        "service": {
+          "$ref": "#/$defs/service"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "runbook": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service",
+        "source"
+      ],
+      "properties": {
+        "service": {
+          "$ref": "#/$defs/service"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

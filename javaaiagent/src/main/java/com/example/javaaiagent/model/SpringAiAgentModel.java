@@ -2,13 +2,9 @@ package com.example.javaaiagent.model;
 
 import com.example.javaaiagent.application.AgentModel;
 import com.example.javaaiagent.application.Turn;
+import com.example.javaaiagent.config.JsonSchemaSettings;
 import com.example.javaaiagent.diagnostics.TokenUsage;
 import com.example.javaaiagent.templates.MessageTemplates;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
-
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.SystemMessage;
@@ -19,7 +15,14 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.ai.openai.api.ResponseFormat;
 import org.springframework.ai.tool.ToolCallback;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * Translates graph history into Spring AI messages without handing over tool execution.
@@ -29,15 +32,15 @@ public final class SpringAiAgentModel {
     private SpringAiAgentModel() {
     }
 
-    public static AgentModel create(OpenAiChatModel model, MessageTemplates templates) {
-        return create(model, templates, response -> {
+    public static AgentModel create(OpenAiChatModel model, MessageTemplates templates, JsonSchemaSettings jsonSchemaSettings) {
+        return create(model, templates, jsonSchemaSettings, response -> {
         });
     }
 
     /**
      * Optional response observation for usage accounting; does not change the agent loop.
      */
-    public static AgentModel create(OpenAiChatModel model, MessageTemplates templates, Consumer<ChatResponse> observer) {
+    public static AgentModel create(OpenAiChatModel model, MessageTemplates templates, JsonSchemaSettings jsonSchemaSettings, Consumer<ChatResponse> observer) {
         return new AgentModel() {
             @Override
             public Turn complete(List<Turn> history, List<ToolCallback> tools) {
@@ -48,11 +51,21 @@ public final class SpringAiAgentModel {
             @Override
             public Turn complete(List<Turn> history, List<ToolCallback> tools, Consumer<TokenUsage> usageObserver) {
                 List<Message> messages = messages(history, templates, tools.isEmpty());
+                String observationResponseSchemaContent;
+                try {
+                    var observationResponseSchema = jsonSchemaSettings.observationResponse();
+                    observationResponseSchemaContent = observationResponseSchema.getContentAsString(Charset.defaultCharset());
+                } catch (IOException e) {
+                    throw new IllegalStateException("Failed to read observation response schema content. Check agent.json-schemas.", e);
+                }
+                var responseFormat = tools.isEmpty() ? ResponseFormat.builder().type(ResponseFormat.Type.JSON_OBJECT).build()
+                        : ResponseFormat.builder().type(ResponseFormat.Type.JSON_SCHEMA).jsonSchema(observationResponseSchemaContent).build();
                 // LangGraph4j owns the tool loop; Spring AI must not execute tools internally.
                 var options = OpenAiChatOptions.builder()
                         .toolCallbacks(tools)
                         .internalToolExecutionEnabled(false)
                         .toolChoice(tools.isEmpty() ? "none" : "auto")
+                        .responseFormat(responseFormat)
                         .build();
                 var response = model.call(new Prompt(messages, options));
                 observer.accept(response);

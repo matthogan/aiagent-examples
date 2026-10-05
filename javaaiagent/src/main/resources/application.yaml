@@ -50,6 +50,10 @@ agent:
     execution: ${AGENT_EXECUTION_TIMEOUT:45s}
     client-discovery: ${CLIENT_DISCOVERY_TIMEOUT:10s}
     client-request: ${CLIENT_REQUEST_TIMEOUT:60s}
+  # json schemas
+  json-schemas:
+    # value must be a valid JSON schema, either as a classpath resource or a URL
+    observation-response: ${OBSERVATION_SCHEMA:classpath:schemas/observation-response.json}
 
 logging:
   level:

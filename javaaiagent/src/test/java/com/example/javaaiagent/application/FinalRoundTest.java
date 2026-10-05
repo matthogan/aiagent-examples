@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.example.javaaiagent.diagnostics.*;
 import com.example.javaaiagent.evidence.*;
+import com.example.javaaiagent.config.JsonSchemaSettings;
 import com.example.javaaiagent.model.SpringAiAgentModel;
 import com.example.javaaiagent.model.TimedAgentModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,6 +22,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.ai.openai.api.OpenAiApi;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.ai.tool.definition.DefaultToolDefinition;
 import org.springframework.ai.tool.definition.ToolDefinition;
 import org.springframework.retry.support.RetryTemplate;
@@ -220,10 +222,14 @@ class FinalRoundTest {
                             .defaultOptions(OpenAiChatOptions.builder().model("test").build())
                             .retryTemplate(RetryTemplate.builder().maxAttempts(1).build())
                             .build();
+            var jsonSchemaSettings =
+                    new JsonSchemaSettings(
+                            new ClassPathResource("schemas/observation-response.json"));
             var calls = new AtomicInteger();
             var result =
                     new OperationsGraph(
-                                    SpringAiAgentModel.create(provider, templates()),
+                                    SpringAiAgentModel.create(
+                                            provider, templates(), jsonSchemaSettings),
                                     defaults(),
                                     templates())
                             .execute("payments", List.of(tool(calls)), RunDiagnostics.quiet());
